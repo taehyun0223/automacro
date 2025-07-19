@@ -222,5 +222,15 @@ build_exe/
 dist_exe/
 
 
-# claude
+# Claude Code 관련 파일
 .claude/
+CLAUDE.md
+
+# 가이드 및 문서 파일 (README 제외)
+TEST_GUIDE.md
+TODO.md
+Blue_Archive_Macro_CleanArchitecture.md
+블루아카이브_PC클라이언트_게임감지_구현가이드.md
+*.guide.md
+*_guide.md
+*_GUIDE.md
