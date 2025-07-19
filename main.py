@@ -1,122 +1,99 @@
 """
-블루아카이브 일일퀘스트 매크로 메인 진입점
+블루아카이브 일일퀘스트 매크로 메인 실행 파일
 """
-import os
-import sys
 
-# 프로젝트 루트를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from domain.services.image_locator import OpenCVImageLocator
-from infrastructure.screen.clicker import PyAutoGuiScreenClicker, SafeClicker
 from infrastructure.input.keyboard_monitor import PynputKeyboardMonitor
-from application.macros.cafe_reward_collector import CafeRewardCollector
-from application.macros.daily_mission_claimer import DailyMissionClaimer
-from application.usecases.macro_loop_usecase import BlueArchiveMacroLoopUseCase, SequentialMacroUseCase
-import config
+from application.usecases.macro_loop_usecase import BlueArchiveMacroLoopUseCase
+from application.usecases.cafe_automation_usecase import CafeAutomationUseCase
 
 
-def setup_dependencies():
-    """의존성 설정"""
-    # 이미지 위치 탐지 서비스
-    image_locator = OpenCVImageLocator()
+def show_menu():
+    """메뉴 표시"""
+    print("=" * 50)
+    print("🎮 블루아카이브 자동화 매크로")
+    print("=" * 50)
+    print("1. 🏠 카페 자동화 (단일 실행)")
+    print("2. 🔄 전체 매크로 루프 (연속 실행)")
+    print("3. 📊 현재 상태 확인")
+    print("4. ❌ 종료")
+    print("-" * 50)
+
+
+def run_cafe_automation():
+    """카페 자동화 실행"""
+    automation = CafeAutomationUseCase()
     
-    # 클릭 처리 (안전한 클릭 래퍼 사용)
-    base_clicker = PyAutoGuiScreenClicker()
-    clicker = SafeClicker(base_clicker)
+    print("\n🏠 카페 자동화를 실행합니다...")
+    success = automation.execute()
     
-    # 키보드 모니터링
-    keyboard_monitor = PynputKeyboardMonitor()
+    if success:
+        print("🎉 카페 자동화 완료!")
+    else:
+        print("😞 카페 자동화 실패")
     
-    return image_locator, clicker, keyboard_monitor
+    input("\nEnter를 눌러 메뉴로 돌아가세요...")
 
 
-def create_macros(image_locator, clicker):
-    """매크로 인스턴스 생성"""
-    # 개별 매크로들
-    cafe_collector = CafeRewardCollector(image_locator, clicker)
-    mission_claimer = DailyMissionClaimer(image_locator, clicker)
+def run_full_macro():
+    """전체 매크로 루프 실행"""
+    print("\n🔄 전체 매크로 루프를 시작합니다...")
+    print("Ctrl+Q로 언제든 종료할 수 있습니다.")
     
-    return cafe_collector, mission_claimer
+    try:
+        keyboard_monitor = PynputKeyboardMonitor()
+        macro_loop = BlueArchiveMacroLoopUseCase(keyboard_monitor)
+        macro_loop.run()
+    except KeyboardInterrupt:
+        print("\n⏹️ 사용자에 의해 매크로가 중단되었습니다.")
 
 
-def check_assets():
-    """에셋 파일 존재 확인"""
-    missing_files = []
+def check_status():
+    """현재 상태 확인"""
+    automation = CafeAutomationUseCase()
+    status = automation.get_status()
     
-    for image_name, filename in config.IMAGES.items():
-        filepath = f"{config.ASSETS_PATH}{filename}"
-        if not os.path.exists(filepath):
-            missing_files.append(filepath)
+    print("\n📊 현재 상태:")
+    print(f"게임 프로세스 실행: {'✅' if status['process_running'] else '❌'}")
+    print(f"게임 상태: {status['game_state']}")
+    print(f"신뢰도: {status['confidence']:.2f}")
+    print(f"카페 자동화 준비: {'✅' if status['ready_for_cafe'] else '❌'}")
     
-    if missing_files:
-        print("⚠️  다음 이미지 파일들이 없습니다:")
-        for file in missing_files:
-            print(f"   - {file}")
-        print("\\n📝 사용법:")
-        print("1. 게임에서 해당 버튼들을 스크린샷으로 캡처")
-        print("2. 캡처한 이미지들을 assets/ 폴더에 저장")
-        print("3. 매크로 재실행")
-        return False
-    
-    return True
-
-
-def print_usage_info():
-    """사용법 안내"""
-    print("🎮 블루아카이브 일일퀘스트 매크로")
-    print("="*50)
-    print(f"🔧 설정된 화면 해상도: {config.SCREEN_RESOLUTION}")
-    print(f"⏱️  매크로 루프 간격: {config.LOOP_DELAY}초")
-    print(f"🛑 종료 키: {config.EXIT_KEY}")
-    print(f"📁 이미지 경로: {config.ASSETS_PATH}")
-    print("="*50)
-    print("✅ 실행할 작업:")
-    print("   1. 카페 보상 수령")
-    print("   2. 일일 미션 수령")
-    print("="*50)
+    input("\nEnter를 눌러 메뉴로 돌아가세요...")
 
 
 def main():
-    """메인 함수"""
-    try:
-        # 사용법 출력
-        print_usage_info()
-        
-        # 에셋 파일 확인
-        if not check_assets():
-            return
-        
-        print("🔍 에셋 파일 확인 완료")
-        
-        # 의존성 설정
-        image_locator, clicker, keyboard_monitor = setup_dependencies()
-        
-        # 매크로 생성
-        cafe_collector, mission_claimer = create_macros(image_locator, clicker)
-        
-        # 매크로 루프 설정
-        macro_loop = BlueArchiveMacroLoopUseCase(keyboard_monitor)
-        
-        # 순차 실행 매크로 (카페 -> 일일미션)
-        sequential_macro = SequentialMacroUseCase([cafe_collector, mission_claimer])
-        macro_loop.add_macro(sequential_macro)
-        
-        print("🚀 매크로 시작...")
-        print(f"종료하려면 {config.EXIT_KEY}를 누르세요\\n")
-        
-        # 매크로 실행
-        macro_loop.start()
-        
-    except KeyboardInterrupt:
-        print("\\n❌ 사용자에 의해 중단됨")
-    except Exception as e:
-        print(f"\\n💥 오류 발생: {e}")
-        if config.DEBUG_MODE:
-            import traceback
-            traceback.print_exc()
-    finally:
-        print("\\n👋 매크로 종료")
+    """메인 실행 함수"""
+    print("🔧 시작하기 전에 확인사항:")
+    print("1. 블루아카이브 게임이 실행되어 있어야 합니다")
+    print("2. assets/ 폴더에 필요한 이미지 파일들이 있어야 합니다")
+    print("3. 게임 화면이 보이는 상태여야 합니다")
+    print()
+    
+    while True:
+        try:
+            show_menu()
+            choice = input("선택하세요 (1-4): ").strip()
+            
+            if choice == '1':
+                run_cafe_automation()
+            elif choice == '2':
+                run_full_macro()
+                break  # 매크로 루프 종료 후 프로그램 종료
+            elif choice == '3':
+                check_status()
+            elif choice == '4':
+                print("👋 프로그램을 종료합니다.")
+                break
+            else:
+                print("❌ 잘못된 선택입니다. 1-4 중에서 선택해주세요.")
+                input("Enter를 눌러 계속...")
+                
+        except KeyboardInterrupt:
+            print("\n⏹️ 사용자에 의해 프로그램이 중단되었습니다.")
+            break
+        except Exception as e:
+            print(f"\n❌ 오류가 발생했습니다: {e}")
+            input("Enter를 눌러 계속...")
 
 
 if __name__ == "__main__":
