@@ -1,6 +1,6 @@
 """
 카페 자동화 유스케이스
-게임 인식 -> 활성화 -> 카페 아이콘 클릭 -> 카페 수익 수령의 전체 흐름
+게임 인식 -> 활성화 -> 카페 아이콘 클릭 -> 카페 수익 수령 -> 학생 호감도 상호작용의 전체 흐름
 """
 import time
 from typing import Optional
@@ -11,18 +11,21 @@ from domain.services.image_locator import OpenCVImageLocator
 from domain.models.image_region import ImageRegion
 from infrastructure.screen.clicker import PyAutoGuiScreenClicker
 from infrastructure.screen.cafe_revenue_detector import CafeRevenueDetector
+from infrastructure.screen.student_affinity_detector import StudentAffinityDetector
 
 
 class CafeAutomationUseCase:
     """카페 자동화 유스케이스"""
     
-    def __init__(self, collect_revenue: bool = False):
+    def __init__(self, collect_revenue: bool = False, interact_students: bool = False):
         self.process_detector = GameProcessDetector()
         self.state_detector = BlueArchiveStateDetector()
         self.image_locator = OpenCVImageLocator()
         self.clicker = PyAutoGuiScreenClicker()
         self.revenue_detector = CafeRevenueDetector()
+        self.affinity_detector = StudentAffinityDetector()
         self.collect_revenue = collect_revenue
+        self.interact_students = interact_students
         
         # 카페 버튼 이미지 영역 정의
         self.cafe_button_region = ImageRegion(
@@ -59,6 +62,11 @@ class CafeAutomationUseCase:
             if self.collect_revenue:
                 if not self._collect_cafe_revenue():
                     print("⚠️ 카페 수익 수령 실패, 하지만 카페 접근은 성공")
+            
+            # 6. 학생 호감도 상호작용 (옵션)
+            if self.interact_students:
+                if not self._interact_with_students():
+                    print("⚠️ 학생 호감도 상호작용 실패, 하지만 다른 작업은 성공")
             
             print("✅ 카페 자동화 완료!")
             return True
@@ -180,6 +188,37 @@ class CafeAutomationUseCase:
             print(f"❌ 카페 수익 수령 중 오류: {e}")
             return False
     
+    def _interact_with_students(self) -> bool:
+        """학생 호감도 상호작용"""
+        print("\n6️⃣ 학생 호감도 상호작용 중...")
+        
+        # 카페 화면 안정화 대기
+        time.sleep(2)
+        
+        try:
+            results = self.affinity_detector.process_all_students()
+            if results:
+                print(f"✅ {len(results)}명의 학생과 호감도 상호작용 완료!")
+                
+                # 간단한 결과 요약
+                rank_ups = sum(1 for r in results if r.result.value == "rank_up")
+                increases = sum(1 for r in results if r.result.value == "normal")
+                
+                if rank_ups > 0:
+                    print(f"🎉 인연 랭크 업: {rank_ups}명")
+                if increases > 0:
+                    print(f"💖 호감도 증가: {increases}명")
+                
+                return True
+            else:
+                print("💡 호감도 표식이 있는 학생이 없거나 템플릿이 없습니다")
+                print("   tools/templates/create_affinity_templates.py를 실행해서 템플릿을 만들어보세요")
+                return False
+                
+        except Exception as e:
+            print(f"❌ 학생 호감도 상호작용 중 오류: {e}")
+            return False
+    
     def get_status(self) -> dict:
         """현재 상태 정보 반환"""
         process_running = self.process_detector.is_game_running()
@@ -201,9 +240,9 @@ class CafeAutomationUseCase:
             }
 
 
-def create_cafe_automation(collect_revenue: bool = False) -> CafeAutomationUseCase:
+def create_cafe_automation(collect_revenue: bool = False, interact_students: bool = False) -> CafeAutomationUseCase:
     """카페 자동화 유스케이스 팩토리"""
-    return CafeAutomationUseCase(collect_revenue=collect_revenue)
+    return CafeAutomationUseCase(collect_revenue=collect_revenue, interact_students=interact_students)
 
 
 if __name__ == "__main__":

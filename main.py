@@ -5,6 +5,7 @@
 from infrastructure.input.keyboard_monitor import PynputKeyboardMonitor
 from application.usecases.macro_loop_usecase import BlueArchiveMacroLoopUseCase
 from application.usecases.cafe_automation_usecase import CafeAutomationUseCase
+from application.usecases.student_affinity_usecase import StudentAffinityUseCase
 
 
 def show_menu():
@@ -14,9 +15,11 @@ def show_menu():
     print("=" * 50)
     print("1. 🏠 카페 접근 (단일 실행)")
     print("2. 💰 카페 접근 + 수익 수령 (단일 실행)")
-    print("3. 🔄 전체 매크로 루프 (연속 실행)")
-    print("4. 📊 현재 상태 확인")
-    print("5. ❌ 종료")
+    print("3. 💕 카페 접근 + 수익 수령 + 학생 호감도 (완전 자동화)")
+    print("4. 💖 학생 호감도만 (카페에 이미 있을 때)")
+    print("5. 🔄 전체 매크로 루프 (연속 실행)")
+    print("6. 📊 현재 상태 확인")
+    print("7. ❌ 종료")
     print("-" * 50)
 
 
@@ -49,6 +52,44 @@ def run_cafe_with_revenue():
         print("🎉 카페 자동화 완료!")
     else:
         print("😞 카페 자동화 실패")
+    
+    input("\nEnter를 눌러 메뉴로 돌아가세요...")
+
+
+def run_cafe_complete_automation():
+    """카페 완전 자동화 실행 (수익 + 학생 호감도)"""
+    automation = CafeAutomationUseCase(collect_revenue=True, interact_students=True)
+    
+    print("\n💕 카페 완전 자동화를 실행합니다...")
+    print("⚠️ 다음 템플릿들이 필요합니다:")
+    print("   - 카페 수익 및 수령 버튼 템플릿")
+    print("   - 학생 호감도 표식 템플릿")
+    print("   - 인연 랭크 업 팝업 템플릿")
+    
+    success = automation.execute()
+    
+    if success:
+        print("🎉 카페 완전 자동화 완료!")
+    else:
+        print("😞 카페 완전 자동화 실패")
+    
+    input("\nEnter를 눌러 메뉴로 돌아가세요...")
+
+
+def run_student_affinity_only():
+    """학생 호감도만 실행"""
+    automation = StudentAffinityUseCase()
+    
+    print("\n💖 학생 호감도 상호작용을 실행합니다...")
+    print("⚠️ 카페에 이미 있는 상태에서 실행하세요")
+    print("   학생 호감도 표식 템플릿이 필요합니다")
+    
+    success = automation.execute()
+    
+    if success:
+        print("🎉 학생 호감도 상호작용 완료!")
+    else:
+        print("😞 학생 호감도 상호작용 실패")
     
     input("\nEnter를 눌러 메뉴로 돌아가세요...")
 
@@ -91,22 +132,26 @@ def main():
     while True:
         try:
             show_menu()
-            choice = input("선택하세요 (1-5): ").strip()
+            choice = input("선택하세요 (1-7): ").strip()
             
             if choice == '1':
                 run_cafe_automation()
             elif choice == '2':
                 run_cafe_with_revenue()
             elif choice == '3':
+                run_cafe_complete_automation()
+            elif choice == '4':
+                run_student_affinity_only()
+            elif choice == '5':
                 run_full_macro()
                 break  # 매크로 루프 종료 후 프로그램 종료
-            elif choice == '4':
+            elif choice == '6':
                 check_status()
-            elif choice == '5':
+            elif choice == '7':
                 print("👋 프로그램을 종료합니다.")
                 break
             else:
-                print("❌ 잘못된 선택입니다. 1-5 중에서 선택해주세요.")
+                print("❌ 잘못된 선택입니다. 1-7 중에서 선택해주세요.")
                 input("Enter를 눌러 계속...")
                 
         except KeyboardInterrupt:
