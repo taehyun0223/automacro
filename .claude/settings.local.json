@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(mkdir:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(python:*)",
+      "Bash(git add:*)",
+      "Bash(git branch:*)"
     ],
     "deny": []
   }

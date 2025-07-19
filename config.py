@@ -3,7 +3,7 @@
 """
 
 # 화면 설정
-SCREEN_RESOLUTION = (1920, 1080)
+SCREEN_RESOLUTION = (2560, 1440)
 FULLSCREEN_CAPTURE = True
 
 # 이미지 매칭 설정
