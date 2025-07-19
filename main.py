@@ -12,18 +12,37 @@ def show_menu():
     print("=" * 50)
     print("🎮 블루아카이브 자동화 매크로")
     print("=" * 50)
-    print("1. 🏠 카페 자동화 (단일 실행)")
-    print("2. 🔄 전체 매크로 루프 (연속 실행)")
-    print("3. 📊 현재 상태 확인")
-    print("4. ❌ 종료")
+    print("1. 🏠 카페 접근 (단일 실행)")
+    print("2. 💰 카페 접근 + 수익 수령 (단일 실행)")
+    print("3. 🔄 전체 매크로 루프 (연속 실행)")
+    print("4. 📊 현재 상태 확인")
+    print("5. ❌ 종료")
     print("-" * 50)
 
 
 def run_cafe_automation():
-    """카페 자동화 실행"""
-    automation = CafeAutomationUseCase()
+    """카페 접근 자동화 실행"""
+    automation = CafeAutomationUseCase(collect_revenue=False)
     
-    print("\n🏠 카페 자동화를 실행합니다...")
+    print("\n🏠 카페 접근을 실행합니다...")
+    success = automation.execute()
+    
+    if success:
+        print("🎉 카페 접근 완료!")
+    else:
+        print("😞 카페 접근 실패")
+    
+    input("\nEnter를 눌러 메뉴로 돌아가세요...")
+
+
+def run_cafe_with_revenue():
+    """카페 접근 + 수익 수령 자동화 실행"""
+    automation = CafeAutomationUseCase(collect_revenue=True)
+    
+    print("\n💰 카페 접근 + 수익 수령을 실행합니다...")
+    print("⚠️ 카페 수익 및 수령 버튼 템플릿이 필요합니다")
+    print("   없다면 create_revenue_templates.py를 먼저 실행하세요")
+    
     success = automation.execute()
     
     if success:
@@ -72,20 +91,22 @@ def main():
     while True:
         try:
             show_menu()
-            choice = input("선택하세요 (1-4): ").strip()
+            choice = input("선택하세요 (1-5): ").strip()
             
             if choice == '1':
                 run_cafe_automation()
             elif choice == '2':
+                run_cafe_with_revenue()
+            elif choice == '3':
                 run_full_macro()
                 break  # 매크로 루프 종료 후 프로그램 종료
-            elif choice == '3':
-                check_status()
             elif choice == '4':
+                check_status()
+            elif choice == '5':
                 print("👋 프로그램을 종료합니다.")
                 break
             else:
-                print("❌ 잘못된 선택입니다. 1-4 중에서 선택해주세요.")
+                print("❌ 잘못된 선택입니다. 1-5 중에서 선택해주세요.")
                 input("Enter를 눌러 계속...")
                 
         except KeyboardInterrupt:

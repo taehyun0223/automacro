@@ -1,6 +1,6 @@
 """
 카페 자동화 유스케이스
-게임 인식 -> 활성화 -> 카페 아이콘 클릭의 전체 흐름
+게임 인식 -> 활성화 -> 카페 아이콘 클릭 -> 카페 수익 수령의 전체 흐름
 """
 import time
 from typing import Optional
@@ -10,16 +10,19 @@ from infrastructure.screen.game_state_detector import BlueArchiveStateDetector, 
 from domain.services.image_locator import OpenCVImageLocator
 from domain.models.image_region import ImageRegion
 from infrastructure.screen.clicker import PyAutoGuiScreenClicker
+from infrastructure.screen.cafe_revenue_detector import CafeRevenueDetector
 
 
 class CafeAutomationUseCase:
     """카페 자동화 유스케이스"""
     
-    def __init__(self):
+    def __init__(self, collect_revenue: bool = False):
         self.process_detector = GameProcessDetector()
         self.state_detector = BlueArchiveStateDetector()
         self.image_locator = OpenCVImageLocator()
         self.clicker = PyAutoGuiScreenClicker()
+        self.revenue_detector = CafeRevenueDetector()
+        self.collect_revenue = collect_revenue
         
         # 카페 버튼 이미지 영역 정의
         self.cafe_button_region = ImageRegion(
@@ -51,6 +54,11 @@ class CafeAutomationUseCase:
             # 4. 카페 아이콘 찾기 및 클릭
             if not self._click_cafe_button():
                 return False
+            
+            # 5. 카페 수익 수령 (옵션)
+            if self.collect_revenue:
+                if not self._collect_cafe_revenue():
+                    print("⚠️ 카페 수익 수령 실패, 하지만 카페 접근은 성공")
             
             print("✅ 카페 자동화 완료!")
             return True
@@ -150,6 +158,28 @@ class CafeAutomationUseCase:
         
         return False
     
+    def _collect_cafe_revenue(self) -> bool:
+        """카페 수익 수령"""
+        print("\n5️⃣ 카페 수익 수령 중...")
+        
+        # 카페 화면 로딩 대기
+        time.sleep(2)
+        
+        try:
+            success = self.revenue_detector.collect_cafe_revenue()
+            if success:
+                print("✅ 카페 수익 수령 완료!")
+                return True
+            else:
+                print("❌ 카페 수익 수령 실패")
+                print("💡 템플릿 이미지가 없거나 버튼을 찾을 수 없습니다")
+                print("   create_revenue_templates.py를 실행해서 템플릿을 만들어보세요")
+                return False
+                
+        except Exception as e:
+            print(f"❌ 카페 수익 수령 중 오류: {e}")
+            return False
+    
     def get_status(self) -> dict:
         """현재 상태 정보 반환"""
         process_running = self.process_detector.is_game_running()
@@ -171,9 +201,9 @@ class CafeAutomationUseCase:
             }
 
 
-def create_cafe_automation() -> CafeAutomationUseCase:
+def create_cafe_automation(collect_revenue: bool = False) -> CafeAutomationUseCase:
     """카페 자동화 유스케이스 팩토리"""
-    return CafeAutomationUseCase()
+    return CafeAutomationUseCase(collect_revenue=collect_revenue)
 
 
 if __name__ == "__main__":

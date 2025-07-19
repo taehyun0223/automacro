@@ -10,6 +10,8 @@ pip install -r requirements.txt
 # 2. 프로젝트 구조 확인
 # 다음 파일들이 있는지 확인:
 # - assets/cafe_button.png (카페 버튼 이미지)
+# - assets/cafe_revenue_button.png (카페 수익 버튼 이미지) - 수익 수령용
+# - assets/collect_button.png (수령 버튼 이미지) - 수익 수령용
 # - config.py (설정 파일)
 # - main.py (실행 파일)
 ```
@@ -28,10 +30,11 @@ pip install -r requirements.txt
 python main.py
 
 # 메뉴에서 선택:
-# 1. 카페 자동화 (단일 실행)
-# 2. 전체 매크로 루프
-# 3. 현재 상태 확인
-# 4. 종료
+# 1. 카페 접근 (단일 실행)
+# 2. 카페 접근 + 수익 수령 (단일 실행)
+# 3. 전체 매크로 루프
+# 4. 현재 상태 확인
+# 5. 종료
 ```
 
 ### 방법 2: 개별 컴포넌트 테스트
@@ -82,6 +85,27 @@ python -m application.usecases.cafe_automation_usecase
 ✅ 카페 자동화 완료!
 ```
 
+#### 2-4. 카페 수익 템플릿 생성
+```bash
+python create_revenue_templates.py
+```
+**사용법:**
+1. 카페 수익 버튼 템플릿 생성 - 카페 화면에서 "카페 수익" 버튼 캡처
+2. 수령 버튼 템플릿 생성 - 수익 팝업에서 "수령" 버튼 캡처
+3. 각 템플릿 테스트 - 생성된 템플릿이 올바르게 작동하는지 확인
+
+#### 2-5. 카페 수익 자동화 테스트
+```bash
+python -m infrastructure.screen.cafe_revenue_detector
+```
+**예상 결과:**
+```
+=== 카페 수익 수령 시작 ===
+카페 수익 버튼 클릭: (960, 540)
+수령 버튼 클릭: (960, 600)
+카페 수익 수령 완료!
+```
+
 ## 🔧 문제 해결
 
 ### ❌ 게임 프로세스를 찾을 수 없음
@@ -103,6 +127,20 @@ python -m application.usecases.cafe_automation_usecase
 2. 게임이 메인 메뉴에 있는지 확인
 3. 카페 아이콘이 실제로 보이는지 확인
 4. 이미지 신뢰도 임계값 조정 (config.py에서 `IMAGE_MATCH_CONFIDENCE` 값 낮춤)
+
+### ❌ 카페 수익 버튼을 찾을 수 없음
+**원인:** 수익 버튼 템플릿이 없거나 정확하지 않음
+**해결:**
+1. `create_revenue_templates.py`를 실행해서 템플릿 생성
+2. 카페 화면에서 "카페 수익" 버튼이 보이는지 확인
+3. `assets/cafe_revenue_button.png` 파일이 정확한지 확인
+
+### ❌ 수령 버튼을 찾을 수 없음
+**원인:** 수령 버튼 템플릿이 없거나 팝업이 뜨지 않음
+**해결:**
+1. 카페 수익 버튼을 먼저 클릭해서 팝업 표시
+2. `create_revenue_templates.py`로 수령 버튼 템플릿 생성
+3. `assets/collect_button.png` 파일이 정확한지 확인
 
 ### ❌ 윈도우 활성화 실패
 **원인:** 권한 문제 또는 다른 프로그램 방해
