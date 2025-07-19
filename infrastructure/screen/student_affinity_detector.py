@@ -21,7 +21,7 @@ class StudentAffinityDetector:
     def __init__(self):
         self.affinity_indicator_template = "assets/affinity_indicator.png"
         self.rank_up_template = "assets/rank_up_popup.png"
-        self.confidence_threshold = 0.6
+        self.confidence_threshold = 0.5
         self.max_students = 5
         
     def _find_game_window(self):
@@ -65,10 +65,20 @@ class StudentAffinityDetector:
         
         students = []
         template = cv2.imread(self.affinity_indicator_template)
+        # 1) 그레이스케일 변환
         gray_screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         gray_template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+
+        # === 2) ROI로 관심 영역만 잘라내기 (상단 우측 예시) ===
+        h, w = gray_screenshot.shape
+        roi = gray_screenshot[int(h*0.1):int(h*0.5), int(w*0.4):w]  # 상단 우측만 검사
+
+        # === 3) 히스토그램 평활화 ===
+        gray_screenshot = cv2.equalizeHist(gray_screenshot)
+        gray_template   = cv2.equalizeHist(gray_template)
+
         
-        # 템플릿 매칭
+        # 템플릿 매칭 (이제 전처리된 gray_screenshot 사용)
         result = cv2.matchTemplate(gray_screenshot, gray_template, cv2.TM_CCOEFF_NORMED)
         
         # 여러 개의 매칭 결과 찾기
@@ -97,8 +107,8 @@ class StudentAffinityDetector:
             
             if not too_close and len(students) < self.max_students:
                 # 학생 클릭 위치는 표식 아래쪽 (학생 몸체 부분)
-                student_x = x + template_w // 2
-                student_y = y + template_h + 30  # 표식 아래 30픽셀 정도
+                student_x = x + template_w + 15
+                student_y = y + template_h + 5
                 
                 student_pos = StudentPosition(
                     x=student_x,
@@ -231,32 +241,66 @@ class StudentAffinityDetector:
         )
     
     def process_all_students(self) -> List[AffinityInteractionResult]:
-        """모든 호감도 표식이 있는 학생들과 상호작용"""
         print("=== 학생 호감도 상호작용 시작 ===")
-        
-        # 1. 호감도 표식이 있는 학생들 찾기
-        students = self.find_students_with_indicators()
-        
-        if not students:
-            print("호감도 표식이 있는 학생을 찾을 수 없습니다")
-            return []
-        
         results = []
-        
-        # 2. 각 학생과 상호작용
-        for i, student in enumerate(students, 1):
-            print(f"\n학생 {i}/{len(students)} 상호작용 중...")
+
+        # 최대 max_students 명까지 반복
+        for idx in range(self.max_students):
+            # 1) 탐지 유예 시간 설정
+            retry_start   = time.time()
+            retry_timeout = 3.0    # 최대 대기 시간 (초)
+            retry_interval = 0.5   # 재시도 간격 (초)
+
+            print(f"\n{idx+1}번째 학생 표식 탐지 시도 중...")
+            students = []
+            while time.time() - retry_start < retry_timeout:
+                students = self.find_students_with_indicators()
+                if students:
+                    print("호감도 표식 발견!")
+                    break
+                time.sleep(retry_interval)
+
+            if not students:
+                print(f"{idx+1}번째 학생 표식 탐지 실패, 다음으로 넘어갑니다")
+                continue
+
+            # 2) 첫 번째 발견된 학생과 상호작용
+            student = students[0]
+            print(f"{idx+1}번째 학생 클릭 및 상호작용 실행")
             result = self.interact_with_student(student)
             results.append(result)
-            
+
             print(f"결과: {result.message} (소요시간: {result.interaction_time:.1f}초)")
-            
-            # 다음 학생과의 간격
-            if i < len(students):
-                time.sleep(1.0)
-        
+            time.sleep(1.0)  # 다음 학생 전 잠시 대기
+
         print(f"\n=== 학생 호감도 상호작용 완료 ({len(results)}명) ===")
         return results
+        # """모든 호감도 표식이 있는 학생들과 상호작용"""
+        # print("=== 학생 호감도 상호작용 시작 ===")
+        
+        # # 1. 호감도 표식이 있는 학생들 찾기
+        # students = self.find_students_with_indicators()
+        
+        # if not students:
+        #     print("호감도 표식이 있는 학생을 찾을 수 없습니다")
+        #     return []
+        
+        # results = []
+        
+        # # 2. 각 학생과 상호작용
+        # for i, student in enumerate(students, 1):
+        #     print(f"\n학생 {i}/{len(students)} 상호작용 중...")
+        #     result = self.interact_with_student(student)
+        #     results.append(result)
+            
+        #     print(f"결과: {result.message} (소요시간: {result.interaction_time:.1f}초)")
+            
+        #     # 다음 학생과의 간격
+        #     if i < len(students):
+        #         time.sleep(1.0)
+        
+        # print(f"\n=== 학생 호감도 상호작용 완료 ({len(results)}명) ===")
+        # return results
     
     def save_debug_screenshot(self, prefix="student_affinity_debug"):
         """디버그용 스크린샷 저장"""

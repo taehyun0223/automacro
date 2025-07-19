@@ -13,7 +13,7 @@ class CafeRevenueDetector:
     def __init__(self):
         self.revenue_button_template = "assets/cafe_revenue_button.png"
         self.collect_button_template = "assets/collect_button.png"
-        self.confidence_threshold = 0.6
+        self.confidence_threshold = 0.4
         
     def _find_game_window(self):
         """게임 윈도우 찾기"""

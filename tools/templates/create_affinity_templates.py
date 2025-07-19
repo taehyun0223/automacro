@@ -106,53 +106,74 @@ def create_rank_up_template():
 
 
 def test_affinity_indicator_template():
-    """호감도 표식 템플릿 테스트"""
+    """호감도 표식 템플릿 테스트 (ROI + 히스토그램 평활화 적용)"""
+    import os, time
+    import cv2
+    import numpy as np
+
     template_path = "assets/affinity_indicator.png"
     if not os.path.exists(template_path):
         print(f"템플릿 파일이 없습니다: {template_path}")
         return
-    
+
     screenshot, window = capture_current_screen()
     if screenshot is None:
+        print("스크린샷을 가져올 수 없습니다.")
         return
-    
-    template = cv2.imread(template_path)
-    gray_screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
-    gray_template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-    
-    result = cv2.matchTemplate(gray_screenshot, gray_template, cv2.TM_CCOEFF_NORMED)
-    
-    # 여러 매칭 결과 찾기
-    locations = np.where(result >= 0.6)
+
+    # 원본→그레이스케일
+    gray_full     = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+    gray_template = cv2.cvtColor(cv2.imread(template_path), cv2.COLOR_BGR2GRAY)
     template_h, template_w = gray_template.shape
-    
-    matches = []
-    for pt in zip(*locations[::-1]):
-        confidence = result[pt[1], pt[0]]
-        matches.append((pt[0], pt[1], confidence))
-    
+
+    # 1) ROI로 관심 영역만 잘라내기 (예: 상단 우측 10%~50% 높이, 40%~100% 너비)
+    h, w = gray_full.shape
+    y1, y2 = int(h * 0.1), int(h * 0.5)
+    x1, x2 = int(w * 0.4), w
+    gray_roi = gray_full[y1:y2, x1:x2]
+
+    # 2) 히스토그램 평활화
+    gray_roi      = cv2.equalizeHist(gray_roi)
+    gray_template = cv2.equalizeHist(gray_template)
+
+    # 3) 템플릿 매칭 & 임계값
+    threshold = 0.4
+    result    = cv2.matchTemplate(gray_roi, gray_template, cv2.TM_CCOEFF_NORMED)
+    locations = np.where(result >= threshold)
+
+    matches = [(x, y, result[y, x]) for x, y in zip(*locations[::-1])]
     print(f"호감도 표식 매칭 결과: {len(matches)}개 발견")
-    
-    if matches:
-        # 매칭 결과를 이미지에 표시
-        debug_img = screenshot.copy()
-        
-        for i, (x, y, confidence) in enumerate(matches):
-            if confidence >= 0.6:  # 임계값 이상만 표시
-                cv2.rectangle(debug_img, (x, y), 
-                              (x + template_w, y + template_h), 
-                              (0, 255, 0), 2)
-                cv2.putText(debug_img, f"{confidence:.2f}", 
-                            (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-                print(f"  매칭 {i+1}: 위치=({x}, {y}), 신뢰도={confidence:.3f}")
-        
-        timestamp = time.strftime("%H%M%S")
-        debug_file = f"screenshots/affinity_indicator_test_{timestamp}.png"
-        cv2.imwrite(debug_file, debug_img)
-        print(f"디버그 이미지: {debug_file}")
-        print("템플릿 매칭 성공!")
-    else:
+
+    if not matches:
         print("템플릿 매칭 실패 - 템플릿을 다시 만들어보세요")
+        return
+
+    # 4) 디버그 이미지에 박스 표시 (ROI→전체 좌표 보정)
+    debug_img = screenshot.copy()
+    for i, (x, y, conf) in enumerate(matches, start=1):
+        fx, fy = x + x1, y + y1
+        cv2.rectangle(
+            debug_img,
+            (fx, fy),
+            (fx + template_w, fy + template_h),
+            (0, 255, 0), 2
+        )
+        cv2.putText(
+            debug_img,
+            f"{conf:.2f}",
+            (fx, fy - 5),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 255, 0), 1
+        )
+        print(f"  매칭 {i}: 위치=({fx}, {fy}), 신뢰도={conf:.3f}")
+
+    # 5) 파일 저장
+    os.makedirs("screenshots", exist_ok=True)
+    timestamp = time.strftime("%H%M%S")
+    debug_file = f"screenshots/affinity_indicator_test_{timestamp}.png"
+    cv2.imwrite(debug_file, debug_img)
+    print(f"디버그 이미지 저장: {debug_file}")
+
 
 
 def test_rank_up_template():
