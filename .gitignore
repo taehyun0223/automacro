@@ -220,3 +220,7 @@ Icon?
 *.msi
 build_exe/
 dist_exe/
+
+
+# claude
+.claude/
