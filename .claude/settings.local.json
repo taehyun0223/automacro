@@ -5,7 +5,15 @@
       "Bash(touch:*)",
       "Bash(python:*)",
       "Bash(git add:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(for branch in feature/game-state-detection feature/macro-integration feature/window-manager)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(git checkout:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(done)"
     ],
     "deny": []
   }
